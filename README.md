@@ -131,8 +131,10 @@ Available optional customization hooks now include:
 - Shared or per-field text styles such as `Typeface.BOLD`
 - Message card background color or drawable
 - Overlay and pointer colors
-- Skip button label, text color, and background drawable
+- Skip close button label, text color, and background drawable
 - Custom indicator sizes with working animation defaults
+
+When enabled, the skip affordance is rendered inline with the title row so it stays close to the title instead of stretching to the full body width.
 ## Change Gravity
 
 ```java
