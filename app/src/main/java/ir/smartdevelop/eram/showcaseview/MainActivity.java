@@ -5,11 +5,13 @@ import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.Arrays;
+import java.util.List;
+
 import smartdevelop.ir.eram.showcaseviewlib.GuideView;
 import smartdevelop.ir.eram.showcaseviewlib.config.DismissType;
 import smartdevelop.ir.eram.showcaseviewlib.config.Gravity;
 import smartdevelop.ir.eram.showcaseviewlib.config.PointerType;
-import smartdevelop.ir.eram.showcaseviewlib.listener.GuideListener;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -21,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     View view6;
     private GuideView mGuideView;
     private GuideView.Builder builder;
+    private List<View> guideSequence;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
         view4 = findViewById(R.id.view4);
         view5 = findViewById(R.id.view5);
         view6 = findViewById(R.id.view6);
+        guideSequence = Arrays.asList(view1, view2, view3, view4, view5, view6);
 
         builder = new GuideView.Builder(this)
                 .setTitle("Guide Title Text")
@@ -40,34 +44,30 @@ public class MainActivity extends AppCompatActivity {
                 .setGravity(Gravity.center)
                 .setDismissType(DismissType.anywhere)
                 .setPointerType(PointerType.circle)
-                .setTargetView(view1)
+                .setShowSkipButton(true)
+                .setTargetView(guideSequence.get(0))
+                .setSkipListener(view -> {
+                    // Skip ends the guide sequence without advancing to the next step.
+                })
                 .setGuideListener(view -> {
-                    int viewId = view.getId();
-                    if (viewId == R.id.view1) {
-                        builder.setTargetView(view2).build();
-                    } else if (viewId == R.id.view2) {
-                        builder.setTargetView(view3).build();
-                    } else if (viewId == R.id.view3) {
-                        builder.setTargetView(view4).build();
-                    } else if (viewId == R.id.view4) {
-                        builder.setTargetView(view5).build();
-                    } else if (viewId == R.id.view5) {
-                        builder.setTargetView(view6).build();
-                    } else if (viewId == R.id.view6) {
-                        return;
+                    int nextIndex = guideSequence.indexOf(view) + 1;
+                    if (nextIndex < guideSequence.size()) {
+                        showGuideAt(nextIndex);
                     }
-                    mGuideView = builder.build();
-                    mGuideView.show();
                 });
 
-        mGuideView = builder.build();
-        mGuideView.show();
+        showGuideAt(0);
 
         updatingForDynamicLocationViews();
     }
 
     private void updatingForDynamicLocationViews() {
         view4.setOnFocusChangeListener((view, b) -> mGuideView.updateGuideViewLocation());
+    }
+
+    private void showGuideAt(int index) {
+        mGuideView = builder.setTargetView(guideSequence.get(index)).build();
+        mGuideView.show();
     }
 
 }

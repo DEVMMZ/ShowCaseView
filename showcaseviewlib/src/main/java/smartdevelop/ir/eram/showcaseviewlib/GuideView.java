@@ -31,6 +31,7 @@ import smartdevelop.ir.eram.showcaseviewlib.config.DismissType;
 import smartdevelop.ir.eram.showcaseviewlib.config.Gravity;
 import smartdevelop.ir.eram.showcaseviewlib.config.PointerType;
 import smartdevelop.ir.eram.showcaseviewlib.listener.GuideListener;
+import smartdevelop.ir.eram.showcaseviewlib.listener.SkipListener;
 
 /**
  * Created by Mohammad Reza Eram on 20/01/2018.
@@ -85,10 +86,12 @@ public class GuideView extends FrameLayout {
     private boolean isPerformedAnimationSize = false;
 
     private GuideListener mGuideListener;
+    private SkipListener mSkipListener;
     private Gravity mGravity;
     private DismissType dismissType;
     private PointerType pointerType;
     private final GuideMessageView mMessageView;
+    private boolean showSkipButton;
 
     private GuideView(Context context, View view) {
         super(context);
@@ -106,6 +109,7 @@ public class GuideView extends FrameLayout {
             messageViewPadding
         );
         mMessageView.setColor(Color.WHITE);
+        mMessageView.setOnSkipClickListener(skipView -> skip());
 
         addView(
             mMessageView,
@@ -320,10 +324,25 @@ public class GuideView extends FrameLayout {
     }
 
     public void dismiss() {
+        dismiss(false);
+    }
+
+    public void skip() {
+        dismiss(true);
+    }
+
+    private void dismiss(boolean skipped) {
         ((ViewGroup) ((Activity) getContext()).getWindow().getDecorView()).removeView(this);
         mIsShowing = false;
         if (mGuideListener != null) {
-            mGuideListener.onDismiss(target);
+            if (skipped) {
+                mGuideListener.onSkip(target);
+            } else {
+                mGuideListener.onDismiss(target);
+            }
+        }
+        if (skipped && mSkipListener != null) {
+            mSkipListener.onSkip(target);
         }
     }
 
@@ -434,6 +453,7 @@ public class GuideView extends FrameLayout {
             ViewGroup.LayoutParams.MATCH_PARENT
         ));
         this.setClickable(false);
+        mMessageView.setSkipButtonVisible(showSkipButton);
         ((ViewGroup) ((Activity) getContext()).getWindow().getDecorView()).addView(this);
         AlphaAnimation startAnimation = new AlphaAnimation(0.0f, 1.0f);
         startAnimation.setDuration(APPEARING_ANIMATION_DURATION);
@@ -481,6 +501,7 @@ public class GuideView extends FrameLayout {
         private Spannable contentSpan;
         private Typeface titleTypeFace, contentTypeFace;
         private GuideListener guideListener;
+        private SkipListener skipListener;
         private int titleTextSize;
         private int contentTextSize;
         private float lineIndicatorHeight;
@@ -488,6 +509,7 @@ public class GuideView extends FrameLayout {
         private float circleIndicatorSize;
         private float circleInnerIndicatorSize;
         private float strokeCircleWidth;
+        private boolean showSkipButton;
 
         public Builder(Context context) {
             this.context = context;
@@ -555,6 +577,16 @@ public class GuideView extends FrameLayout {
          **/
         public Builder setGuideListener(GuideListener guideListener) {
             this.guideListener = guideListener;
+            return this;
+        }
+
+        /**
+         * adding a listener when the explicit skip action is pressed
+         *
+         * @param skipListener a listener for skip events
+         **/
+        public Builder setSkipListener(SkipListener skipListener) {
+            this.skipListener = skipListener;
             return this;
         }
 
@@ -660,11 +692,22 @@ public class GuideView extends FrameLayout {
             return this;
         }
 
+        /**
+         * showing an explicit skip affordance for guide sequences
+         *
+         * @param showSkipButton true to show a close button in the message card
+         */
+        public Builder setShowSkipButton(boolean showSkipButton) {
+            this.showSkipButton = showSkipButton;
+            return this;
+        }
+
         public GuideView build() {
             GuideView guideView = new GuideView(context, targetView);
             guideView.mGravity = gravity != null ? gravity : Gravity.auto;
             guideView.dismissType = dismissType != null ? dismissType : DismissType.targetView;
             guideView.pointerType = pointerType != null ? pointerType : PointerType.circle;
+            guideView.showSkipButton = showSkipButton;
             float density = context.getResources().getDisplayMetrics().density;
 
             guideView.setTitle(title);
@@ -688,6 +731,9 @@ public class GuideView extends FrameLayout {
             }
             if (guideListener != null) {
                 guideView.mGuideListener = guideListener;
+            }
+            if (skipListener != null) {
+                guideView.mSkipListener = skipListener;
             }
             if (lineIndicatorHeight != 0) {
                 guideView.indicatorHeight = lineIndicatorHeight * density;
