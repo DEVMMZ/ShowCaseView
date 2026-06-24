@@ -7,8 +7,8 @@ android {
     defaultConfig {
         minSdk 11
         targetSdk 35
-        versionCode 8
-        versionName "1.4.6"
+        versionCode 9
+        versionName "1.4.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -38,18 +38,21 @@ afterEvaluate {
                 version = android.defaultConfig.versionName
                 pom.withXml {
                     def root = asNode()
-                    def deps = root.dependencies
-                    if (deps != null) {
+                    root.dependencies.each { deps ->
                         deps.dependency.findAll { dep ->
-                            dep.groupId?.text() == "org.jetbrains.kotlin"
-                        }.each { dep ->
-                            deps.remove(dep)
+                            dep.groupId.text() == "org.jetbrains.kotlin"
+                        }.each { kotlinDependency ->
+                            deps.remove(kotlinDependency)
                         }
                     }
                 }
             }
         }
     }
+}
+
+tasks.withType(org.gradle.api.publish.tasks.GenerateModuleMetadata).configureEach {
+    enabled = false
 }
 
 task makeShowCaseView(type: Copy) {
