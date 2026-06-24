@@ -43,7 +43,7 @@ public class GuideView extends FrameLayout {
 
     private static final int INDICATOR_HEIGHT = 40;
     private static final int MESSAGE_VIEW_PADDING = 5;
-    private static final int SIZE_ANIMATION_DURATION = 700;
+    private static final int SIZE_ANIMATION_DURATION = 400;
     private static final int APPEARING_ANIMATION_DURATION = 400;
     private static final int CIRCLE_INDICATOR_SIZE = 6;
     private static final int LINE_INDICATOR_WIDTH_SIZE = 3;
