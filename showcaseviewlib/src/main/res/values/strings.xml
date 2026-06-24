@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ShowCaseViewLib</string>
+    <string name="guide_skip_content_description">Skip guide sequence</string>
 </resources>

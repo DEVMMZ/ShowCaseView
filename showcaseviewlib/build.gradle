@@ -1,28 +1,26 @@
 apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-group='com.github.mreram'
+
 android {
-    compileSdkVersion 30
-
-
-
+    namespace = "smartdevelop.ir.eram.showcaseviewlib"
+    compileSdk 35
     defaultConfig {
-        minSdkVersion 11
-        targetSdkVersion 30
+        minSdk 11
+        targetSdk 35
         versionCode 3
         versionName "1.4.1"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }
 
 task makeShowCaseView(type: Copy) {
@@ -39,6 +37,4 @@ makeShowCaseView.dependsOn(clearJar, build)
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-
-
 }

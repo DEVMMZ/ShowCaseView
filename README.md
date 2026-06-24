@@ -23,6 +23,13 @@ new GuideView.Builder(this)
     .setTargetView(view)
     .setContentTextSize(12)//optional
     .setTitleTextSize(14)//optional
+    .setTypeFace(Typeface.SANS_SERIF) //optional shared font family
+    .setTitleTextStyle(Typeface.BOLD) //optional
+    .setTextColor(Color.DKGRAY) //optional shared title/content color
+    .setMessageBackgroundColor(Color.WHITE) //optional
+    .setOverlayColor(0xB3000000) //optional dim layer color
+    .setShowSkipButton(true) //optional
+    .setSkipButtonText("Skip") //optional
     .build()
     .show();
 ```
@@ -89,6 +96,43 @@ new GuideView.Builder(this)
     .build()
     .show();
 ```	
+
+## Customize styles and visuals
+
+```java
+new GuideView.Builder(this)
+    .setTitle("Guide Title Text")
+    .setContentText("Guide Description Text")
+    .setTargetView(view)
+    .setTypeFace(Typeface.SERIF) // shared title + content font family
+    .setTitleTextStyle(Typeface.BOLD)
+    .setContentTextStyle(Typeface.ITALIC)
+    .setTitleTextColor(Color.BLACK)
+    .setContentTextColor(Color.DKGRAY)
+    .setMessageBackgroundColor(Color.WHITE)
+    .setOverlayColor(0xB3000000)
+    .setLineIndicatorColor(Color.WHITE)
+    .setCircleIndicatorColor(Color.WHITE)
+    .setCircleInnerIndicatorColor(Color.LTGRAY)
+    .setShowSkipButton(true)
+    .setSkipButtonText("Skip")
+    .setSkipButtonTextColor(Color.BLACK)
+    .setSkipButtonBackgroundDrawable(
+        getResources().getDrawable(android.R.drawable.btn_default_small)
+    )
+    .build()
+    .show();
+```
+
+Available optional customization hooks now include:
+
+- Shared or per-field `Typeface`
+- Shared or per-field text colors
+- Shared or per-field text styles such as `Typeface.BOLD`
+- Message card background color or drawable
+- Overlay and pointer colors
+- Skip button label, text color, and background drawable
+- Custom indicator sizes with working animation defaults
 ## Change Gravity
 
 ```java
