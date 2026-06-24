@@ -7,8 +7,8 @@ android {
     defaultConfig {
         minSdk 11
         targetSdk 35
-        versionCode 6
-        versionName "1.4.4"
+        versionCode 7
+        versionName "1.4.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -36,6 +36,17 @@ afterEvaluate {
                 groupId = "com.github.DEVMMZ"
                 artifactId = "ShowCaseView"
                 version = android.defaultConfig.versionName
+                pom.withXml {
+                    def root = asNode()
+                    def deps = root.dependencies
+                    if (deps != null) {
+                        deps.dependency.findAll { dep ->
+                            dep.groupId?.text() == "org.jetbrains.kotlin"
+                        }.each { dep ->
+                            deps.remove(dep)
+                        }
+                    }
+                }
             }
         }
     }
