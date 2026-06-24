@@ -1,6 +1,8 @@
 package ir.smartdevelop.eram.showcaseview;
 
 import android.os.Bundle;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -41,10 +43,23 @@ public class MainActivity extends AppCompatActivity {
         builder = new GuideView.Builder(this)
                 .setTitle("Guide Title Text")
                 .setContentText("Guide Description Text\n .....Guide Description Text\n .....Guide Description Text .....")
+                .setTypeFace(Typeface.SANS_SERIF)
+                .setTitleTextStyle(Typeface.BOLD)
+                .setContentTextColor(Color.DKGRAY)
+                .setMessageBackgroundColor(Color.WHITE)
+                .setOverlayColor(0xB3000000)
+                .setLineIndicatorColor(Color.WHITE)
+                .setCircleIndicatorColor(Color.WHITE)
+                .setCircleInnerIndicatorColor(Color.LTGRAY)
                 .setGravity(Gravity.center)
                 .setDismissType(DismissType.anywhere)
                 .setPointerType(PointerType.circle)
                 .setShowSkipButton(true)
+                .setSkipButtonText("Skip")
+                .setSkipButtonTextColor(Color.BLACK)
+                .setSkipButtonBackgroundDrawable(
+                        getResources().getDrawable(android.R.drawable.ic_menu_close_clear_cancel)
+                )
                 .setTargetView(guideSequence.get(0))
                 .setSkipListener(view -> {
                     // Skip ends the guide sequence without advancing to the next step.

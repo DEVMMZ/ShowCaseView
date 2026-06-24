@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
@@ -41,6 +42,7 @@ class GuideMessageView extends FrameLayout {
     private final TextView mTitleTextView;
     private final TextView mContentTextView;
     private final TextView mCloseButton;
+    private Drawable customBackgroundDrawable;
 
     private final int[] location = new int[2];
     private final int contentPadding;
@@ -164,6 +166,35 @@ class GuideMessageView extends FrameLayout {
         mTitleTextView.setTypeface(typeFace);
     }
 
+    public void setTypeFace(Typeface typeFace) {
+        setTitleTypeFace(typeFace);
+        setContentTypeFace(typeFace);
+    }
+
+    public void setTitleTextColor(int color) {
+        mTitleTextView.setTextColor(color);
+    }
+
+    public void setContentTextColor(int color) {
+        mContentTextView.setTextColor(color);
+    }
+
+    public void setSkipButtonTextColor(int color) {
+        mCloseButton.setTextColor(color);
+    }
+
+    public void setTitleTextStyle(int style) {
+        mTitleTextView.setTypeface(mTitleTextView.getTypeface(), style);
+    }
+
+    public void setContentTextStyle(int style) {
+        mContentTextView.setTypeface(mContentTextView.getTypeface(), style);
+    }
+
+    public void setSkipButtonText(CharSequence text) {
+        mCloseButton.setText(text);
+    }
+
     public void setTitleTextSize(int size) {
         mTitleTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
     }
@@ -175,6 +206,18 @@ class GuideMessageView extends FrameLayout {
     public void setColor(int color) {
         mPaint.setColor(color);
         invalidate();
+    }
+
+    public void setCustomBackgroundDrawable(Drawable drawable) {
+        customBackgroundDrawable = drawable;
+        invalidate();
+    }
+
+    @SuppressWarnings("deprecation")
+    public void setSkipButtonBackgroundDrawable(Drawable drawable) {
+        mCloseButton.setBackgroundDrawable(
+            drawable != null ? drawable : createCloseButtonBackground()
+        );
     }
 
     public void setSkipButtonVisible(boolean visible) {
@@ -198,6 +241,17 @@ class GuideMessageView extends FrameLayout {
             getWidth() - getPaddingRight(),
             getHeight() - getPaddingBottom()
         );
+
+        if (customBackgroundDrawable != null) {
+            customBackgroundDrawable.setBounds(
+                (int) mRect.left,
+                (int) mRect.top,
+                (int) mRect.right,
+                (int) mRect.bottom
+            );
+            customBackgroundDrawable.draw(canvas);
+            return;
+        }
 
         final int density = (int) getResources().getDisplayMetrics().density;
         final int radiusSize = RADIUS_SIZE * density;

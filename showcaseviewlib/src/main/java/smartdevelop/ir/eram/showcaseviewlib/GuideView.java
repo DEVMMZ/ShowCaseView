@@ -17,6 +17,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.Xfermode;
 import android.os.Build;
 import android.text.Spannable;
@@ -77,6 +78,7 @@ public class GuideView extends FrameLayout {
     private float circleIndicatorSize = 0;
     private float circleIndicatorSizeFinal;
     private float circleInnerIndicatorSize = 0;
+    private float circleInnerIndicatorSizeFinal;
     private float lineIndicatorWidthSize;
     private int messageViewPadding;
     private float marginGuide;
@@ -92,6 +94,10 @@ public class GuideView extends FrameLayout {
     private PointerType pointerType;
     private final GuideMessageView mMessageView;
     private boolean showSkipButton;
+    private int overlayColor = BACKGROUND_COLOR;
+    private int lineIndicatorColor = LINE_INDICATOR_COLOR;
+    private int circleIndicatorColor = CIRCLE_INDICATOR_COLOR;
+    private int circleInnerIndicatorColor = CIRCLE_INNER_INDICATOR_COLOR;
 
     private GuideView(Context context, View view) {
         super(context);
@@ -175,7 +181,8 @@ public class GuideView extends FrameLayout {
             );
             circleSizeAnimator.addUpdateListener(valueAnimator -> {
                 circleIndicatorSize = (float) circleSizeAnimator.getAnimatedValue();
-                circleInnerIndicatorSize = (float) circleSizeAnimator.getAnimatedValue() - density;
+                float animatedFraction = circleSizeAnimator.getAnimatedFraction();
+                circleInnerIndicatorSize = circleInnerIndicatorSizeFinal * animatedFraction;
                 postInvalidate();
             });
 
@@ -223,6 +230,7 @@ public class GuideView extends FrameLayout {
         messageViewPadding = (int) (MESSAGE_VIEW_PADDING * density);
         strokeCircleWidth = STROKE_CIRCLE_INDICATOR_SIZE * density;
         circleIndicatorSizeFinal = CIRCLE_INDICATOR_SIZE * density;
+        circleInnerIndicatorSizeFinal = circleIndicatorSizeFinal - density;
     }
 
     public int getNavigationBarSize() {
@@ -253,24 +261,24 @@ public class GuideView extends FrameLayout {
         super.onDraw(canvas);
         if (target != null) {
 
-            selfPaint.setColor(BACKGROUND_COLOR);
+            selfPaint.setColor(overlayColor);
             selfPaint.setStyle(Paint.Style.FILL);
             selfPaint.setAntiAlias(true);
             canvas.drawRect(backgroundRect, selfPaint);
 
             paintLine.setStyle(Paint.Style.FILL);
-            paintLine.setColor(LINE_INDICATOR_COLOR);
+            paintLine.setColor(lineIndicatorColor);
             paintLine.setStrokeWidth(lineIndicatorWidthSize);
             paintLine.setAntiAlias(true);
 
             paintCircle.setStyle(Paint.Style.STROKE);
-            paintCircle.setColor(CIRCLE_INDICATOR_COLOR);
+            paintCircle.setColor(circleIndicatorColor);
             paintCircle.setStrokeCap(Paint.Cap.ROUND);
             paintCircle.setStrokeWidth(strokeCircleWidth);
             paintCircle.setAntiAlias(true);
 
             paintCircleInner.setStyle(Paint.Style.FILL);
-            paintCircleInner.setColor(CIRCLE_INNER_INDICATOR_COLOR);
+            paintCircleInner.setColor(circleInnerIndicatorColor);
             paintCircleInner.setAntiAlias(true);
 
             final float x = (targetRect.left / 2 + targetRect.right / 2);
@@ -482,12 +490,52 @@ public class GuideView extends FrameLayout {
         mMessageView.setContentTypeFace(typeFace);
     }
 
+    public void setTypeFace(Typeface typeFace) {
+        mMessageView.setTypeFace(typeFace);
+    }
+
     public void setTitleTextSize(int size) {
         mMessageView.setTitleTextSize(size);
     }
 
     public void setContentTextSize(int size) {
         mMessageView.setContentTextSize(size);
+    }
+
+    public void setTitleTextColor(int color) {
+        mMessageView.setTitleTextColor(color);
+    }
+
+    public void setContentTextColor(int color) {
+        mMessageView.setContentTextColor(color);
+    }
+
+    public void setSkipButtonTextColor(int color) {
+        mMessageView.setSkipButtonTextColor(color);
+    }
+
+    public void setTitleTextStyle(int style) {
+        mMessageView.setTitleTextStyle(style);
+    }
+
+    public void setContentTextStyle(int style) {
+        mMessageView.setContentTextStyle(style);
+    }
+
+    public void setSkipButtonText(CharSequence text) {
+        mMessageView.setSkipButtonText(text);
+    }
+
+    public void setMessageBackgroundColor(int color) {
+        mMessageView.setColor(color);
+    }
+
+    public void setMessageBackgroundDrawable(Drawable drawable) {
+        mMessageView.setCustomBackgroundDrawable(drawable);
+    }
+
+    public void setSkipButtonBackgroundDrawable(Drawable drawable) {
+        mMessageView.setSkipButtonBackgroundDrawable(drawable);
     }
 
     public static class Builder {
@@ -499,6 +547,7 @@ public class GuideView extends FrameLayout {
         private PointerType pointerType;
         private final Context context;
         private Spannable contentSpan;
+        private Typeface typeFace;
         private Typeface titleTypeFace, contentTypeFace;
         private GuideListener guideListener;
         private SkipListener skipListener;
@@ -510,6 +559,19 @@ public class GuideView extends FrameLayout {
         private float circleInnerIndicatorSize;
         private float strokeCircleWidth;
         private boolean showSkipButton;
+        private Integer titleTextColor;
+        private Integer contentTextColor;
+        private Integer skipButtonTextColor;
+        private Integer titleTextStyle;
+        private Integer contentTextStyle;
+        private Integer messageBackgroundColor;
+        private Integer overlayColor;
+        private Integer lineIndicatorColor;
+        private Integer circleIndicatorColor;
+        private Integer circleInnerIndicatorColor;
+        private CharSequence skipButtonText;
+        private Drawable messageBackgroundDrawable;
+        private Drawable skipButtonBackgroundDrawable;
 
         public Builder(Context context) {
             this.context = context;
@@ -571,6 +633,16 @@ public class GuideView extends FrameLayout {
         }
 
         /**
+         * setting font family for both title and content
+         *
+         * @param typeFace a shared typeface instance
+         **/
+        public Builder setTypeFace(Typeface typeFace) {
+            this.typeFace = typeFace;
+            return this;
+        }
+
+        /**
          * adding a listener on show case view
          *
          * @param guideListener a listener for events
@@ -619,6 +691,74 @@ public class GuideView extends FrameLayout {
          */
         public Builder setTitleTextSize(int size) {
             this.titleTextSize = size;
+            return this;
+        }
+
+        /**
+         * applying a color to the title text
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setTitleTextColor(int color) {
+            this.titleTextColor = color;
+            return this;
+        }
+
+        /**
+         * applying a color to the description text
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setContentTextColor(int color) {
+            this.contentTextColor = color;
+            return this;
+        }
+
+        /**
+         * applying a color to both title and description text
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setTextColor(int color) {
+            this.titleTextColor = color;
+            this.contentTextColor = color;
+            return this;
+        }
+
+        /**
+         * applying a style such as Typeface.BOLD to the title text
+         *
+         * @param style Typeface style constant
+         * @return builder
+         */
+        public Builder setTitleTextStyle(int style) {
+            this.titleTextStyle = style;
+            return this;
+        }
+
+        /**
+         * applying a style such as Typeface.BOLD to the description text
+         *
+         * @param style Typeface style constant
+         * @return builder
+         */
+        public Builder setContentTextStyle(int style) {
+            this.contentTextStyle = style;
+            return this;
+        }
+
+        /**
+         * applying the same style to title and description text
+         *
+         * @param style Typeface style constant
+         * @return builder
+         */
+        public Builder setTextStyle(int style) {
+            this.titleTextStyle = style;
+            this.contentTextStyle = style;
             return this;
         }
 
@@ -683,6 +823,72 @@ public class GuideView extends FrameLayout {
         }
 
         /**
+         * customizing the message card background color
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setMessageBackgroundColor(int color) {
+            this.messageBackgroundColor = color;
+            return this;
+        }
+
+        /**
+         * customizing the message card background drawable
+         *
+         * @param drawable card drawable or selector
+         * @return builder
+         */
+        public Builder setMessageBackgroundDrawable(Drawable drawable) {
+            this.messageBackgroundDrawable = drawable;
+            return this;
+        }
+
+        /**
+         * customizing the overlay color behind the highlighted target
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setOverlayColor(int color) {
+            this.overlayColor = color;
+            return this;
+        }
+
+        /**
+         * customizing the pointer line color
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setLineIndicatorColor(int color) {
+            this.lineIndicatorColor = color;
+            return this;
+        }
+
+        /**
+         * customizing the outer pointer color
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setCircleIndicatorColor(int color) {
+            this.circleIndicatorColor = color;
+            return this;
+        }
+
+        /**
+         * customizing the inner pointer color
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setCircleInnerIndicatorColor(int color) {
+            this.circleInnerIndicatorColor = color;
+            return this;
+        }
+
+        /**
          * this method defining the type of pointer
          *
          * @param pointerType should be one type of PointerType enum. for example: arrow -> To show arrow pointing to target view
@@ -699,6 +905,39 @@ public class GuideView extends FrameLayout {
          */
         public Builder setShowSkipButton(boolean showSkipButton) {
             this.showSkipButton = showSkipButton;
+            return this;
+        }
+
+        /**
+         * replacing the default skip button label
+         *
+         * @param text text shown in the skip button
+         * @return builder
+         */
+        public Builder setSkipButtonText(CharSequence text) {
+            this.skipButtonText = text;
+            return this;
+        }
+
+        /**
+         * customizing the skip button text color
+         *
+         * @param color Android color int
+         * @return builder
+         */
+        public Builder setSkipButtonTextColor(int color) {
+            this.skipButtonTextColor = color;
+            return this;
+        }
+
+        /**
+         * customizing the skip button background drawable or selector
+         *
+         * @param drawable button drawable or selector
+         * @return builder
+         */
+        public Builder setSkipButtonBackgroundDrawable(Drawable drawable) {
+            this.skipButtonBackgroundDrawable = drawable;
             return this;
         }
 
@@ -723,11 +962,41 @@ public class GuideView extends FrameLayout {
             if (contentSpan != null) {
                 guideView.setContentSpan(contentSpan);
             }
+            if (typeFace != null) {
+                guideView.setTypeFace(typeFace);
+            }
             if (titleTypeFace != null) {
                 guideView.setTitleTypeFace(titleTypeFace);
             }
             if (contentTypeFace != null) {
                 guideView.setContentTypeFace(contentTypeFace);
+            }
+            if (titleTextColor != null) {
+                guideView.setTitleTextColor(titleTextColor);
+            }
+            if (contentTextColor != null) {
+                guideView.setContentTextColor(contentTextColor);
+            }
+            if (skipButtonTextColor != null) {
+                guideView.setSkipButtonTextColor(skipButtonTextColor);
+            }
+            if (titleTextStyle != null) {
+                guideView.setTitleTextStyle(titleTextStyle);
+            }
+            if (contentTextStyle != null) {
+                guideView.setContentTextStyle(contentTextStyle);
+            }
+            if (skipButtonText != null) {
+                guideView.setSkipButtonText(skipButtonText);
+            }
+            if (messageBackgroundColor != null) {
+                guideView.setMessageBackgroundColor(messageBackgroundColor);
+            }
+            if (messageBackgroundDrawable != null) {
+                guideView.setMessageBackgroundDrawable(messageBackgroundDrawable);
+            }
+            if (skipButtonBackgroundDrawable != null) {
+                guideView.setSkipButtonBackgroundDrawable(skipButtonBackgroundDrawable);
             }
             if (guideListener != null) {
                 guideView.mGuideListener = guideListener;
@@ -742,13 +1011,25 @@ public class GuideView extends FrameLayout {
                 guideView.lineIndicatorWidthSize = lineIndicatorWidthSize * density;
             }
             if (circleIndicatorSize != 0) {
-                guideView.circleIndicatorSize = circleIndicatorSize * density;
+                guideView.circleIndicatorSizeFinal = circleIndicatorSize * density;
             }
             if (circleInnerIndicatorSize != 0) {
-                guideView.circleInnerIndicatorSize = circleInnerIndicatorSize * density;
+                guideView.circleInnerIndicatorSizeFinal = circleInnerIndicatorSize * density;
             }
             if (strokeCircleWidth != 0) {
                 guideView.strokeCircleWidth = strokeCircleWidth * density;
+            }
+            if (overlayColor != null) {
+                guideView.overlayColor = overlayColor;
+            }
+            if (lineIndicatorColor != null) {
+                guideView.lineIndicatorColor = lineIndicatorColor;
+            }
+            if (circleIndicatorColor != null) {
+                guideView.circleIndicatorColor = circleIndicatorColor;
+            }
+            if (circleInnerIndicatorColor != null) {
+                guideView.circleInnerIndicatorColor = circleInnerIndicatorColor;
             }
 
             return guideView;
