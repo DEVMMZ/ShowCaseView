@@ -1,8 +1,9 @@
 package ir.smartdevelop.eram.showcaseview;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import smartdevelop.ir.eram.showcaseviewlib.GuideView;
 import smartdevelop.ir.eram.showcaseviewlib.config.DismissType;
@@ -41,24 +42,19 @@ public class MainActivity extends AppCompatActivity {
                 .setPointerType(PointerType.circle)
                 .setTargetView(view1)
                 .setGuideListener(view -> {
-                    switch (view.getId()) {
-                        case R.id.view1:
-                            builder.setTargetView(view2).build();
-                            break;
-                        case R.id.view2:
-                            builder.setTargetView(view3).build();
-                            break;
-                        case R.id.view3:
-                            builder.setTargetView(view4).build();
-                            break;
-                        case R.id.view4:
-                            builder.setTargetView(view5).build();
-                            break;
-                        case R.id.view5:
-                            builder.setTargetView(view6).build();
-                            break;
-                        case R.id.view6:
-                            return;
+                    int viewId = view.getId();
+                    if (viewId == R.id.view1) {
+                        builder.setTargetView(view2).build();
+                    } else if (viewId == R.id.view2) {
+                        builder.setTargetView(view3).build();
+                    } else if (viewId == R.id.view3) {
+                        builder.setTargetView(view4).build();
+                    } else if (viewId == R.id.view4) {
+                        builder.setTargetView(view5).build();
+                    } else if (viewId == R.id.view5) {
+                        builder.setTargetView(view6).build();
+                    } else if (viewId == R.id.view6) {
+                        return;
                     }
                     mGuideView = builder.build();
                     mGuideView.show();
