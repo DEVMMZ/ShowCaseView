@@ -639,6 +639,10 @@ public class GuideView extends FrameLayout {
         mMessageView.setSkipButtonBackgroundDrawable(drawable);
     }
 
+    public void setSkipButtonOutlined(boolean outlined) {
+        mMessageView.setSkipButtonOutlined(outlined);
+    }
+
     public static class Builder {
 
         private View targetView;
@@ -673,6 +677,7 @@ public class GuideView extends FrameLayout {
         private CharSequence skipButtonText;
         private Drawable messageBackgroundDrawable;
         private Drawable skipButtonBackgroundDrawable;
+        private Boolean skipButtonOutlined;
 
         public Builder(Context context) {
             this.context = context;
@@ -1042,6 +1047,17 @@ public class GuideView extends FrameLayout {
             return this;
         }
 
+        /**
+         * showing an outlined skip text button when no custom skip background drawable is supplied
+         *
+         * @param outlined true to use the built-in outlined text button background
+         * @return builder
+         */
+        public Builder setSkipButtonOutlined(boolean outlined) {
+            this.skipButtonOutlined = outlined;
+            return this;
+        }
+
         public GuideView build() {
             GuideView guideView = new GuideView(context, targetView);
             guideView.mGravity = gravity != null ? gravity : Gravity.auto;
@@ -1098,6 +1114,9 @@ public class GuideView extends FrameLayout {
             }
             if (skipButtonBackgroundDrawable != null) {
                 guideView.setSkipButtonBackgroundDrawable(skipButtonBackgroundDrawable);
+            }
+            if (skipButtonOutlined != null) {
+                guideView.setSkipButtonOutlined(skipButtonOutlined);
             }
             if (guideListener != null) {
                 guideView.mGuideListener = guideListener;
