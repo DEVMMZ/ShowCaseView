@@ -12,6 +12,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
 import android.text.Spannable;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -33,13 +34,15 @@ class GuideMessageView extends FrameLayout {
     private static final int CLOSE_BUTTON_SIZE = 40;
     private static final int CLOSE_BUTTON_TEXT_SIZE = 18;
     private static final int CLOSE_BUTTON_SPACING = 8;
+    private static final int CLOSE_BUTTON_MAX_WIDTH = 96;
+    private static final int CLOSE_BUTTON_HORIZONTAL_PADDING = 8;
     private static final int CLOSE_BUTTON_ICON_COLOR = 0x99000000;
     private static final int CLOSE_BUTTON_PRESSED_COLOR = 0x14000000;
 
     private final Paint mPaint;
     private final RectF mRect;
     private final LinearLayout mTextContainer;
-    private final FrameLayout mHeaderContainer;
+    private final LinearLayout mHeaderContainer;
     private final TextView mTitleTextView;
     private final TextView mContentTextView;
     private final TextView mCloseButton;
@@ -50,6 +53,8 @@ class GuideMessageView extends FrameLayout {
     private final int titleBottomPadding;
     private final int closeButtonSize;
     private final int closeButtonSpacing;
+    private final int closeButtonMaxWidth;
+    private final int closeButtonHorizontalPadding;
     private boolean hasTitle = true;
 
     GuideMessageView(Context context) {
@@ -60,6 +65,8 @@ class GuideMessageView extends FrameLayout {
         titleBottomPadding = (int) (BOTTOM_PADDING_SIZE * density);
         closeButtonSize = (int) (CLOSE_BUTTON_SIZE * density);
         closeButtonSpacing = (int) (CLOSE_BUTTON_SPACING * density);
+        closeButtonMaxWidth = (int) (CLOSE_BUTTON_MAX_WIDTH * density);
+        closeButtonHorizontalPadding = (int) (CLOSE_BUTTON_HORIZONTAL_PADDING * density);
 
         setWillNotDraw(false);
 
@@ -79,7 +86,9 @@ class GuideMessageView extends FrameLayout {
             )
         );
 
-        mHeaderContainer = new FrameLayout(context);
+        mHeaderContainer = new LinearLayout(context);
+        mHeaderContainer.setGravity(Gravity.CENTER);
+        mHeaderContainer.setOrientation(LinearLayout.HORIZONTAL);
         mTextContainer.addView(
             mHeaderContainer,
             new LinearLayout.LayoutParams(
@@ -93,12 +102,12 @@ class GuideMessageView extends FrameLayout {
         mTitleTextView.setGravity(Gravity.CENTER);
         mTitleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, DEFAULT_TITLE_TEXT_SIZE);
         mTitleTextView.setTextColor(Color.BLACK);
+        mTitleTextView.setEllipsize(null);
         mHeaderContainer.addView(
             mTitleTextView,
-            new FrameLayout.LayoutParams(
+            new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.CENTER
+                ViewGroup.LayoutParams.WRAP_CONTENT
             )
         );
 
@@ -107,20 +116,30 @@ class GuideMessageView extends FrameLayout {
         mCloseButton.setTextColor(CLOSE_BUTTON_ICON_COLOR);
         mCloseButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, CLOSE_BUTTON_TEXT_SIZE);
         mCloseButton.setGravity(Gravity.CENTER);
+        mCloseButton.setSingleLine(true);
+        mCloseButton.setEllipsize(TextUtils.TruncateAt.END);
+        mCloseButton.setMinWidth(closeButtonSize);
+        mCloseButton.setMinHeight(closeButtonSize);
+        mCloseButton.setMaxWidth(closeButtonMaxWidth);
+        mCloseButton.setPadding(
+            closeButtonHorizontalPadding,
+            0,
+            closeButtonHorizontalPadding,
+            0
+        );
         mCloseButton.setContentDescription(
             context.getString(R.string.guide_skip_content_description)
         );
         mCloseButton.setBackgroundDrawable(createCloseButtonBackground());
         mCloseButton.setVisibility(View.GONE);
-        FrameLayout.LayoutParams closeButtonParams = new FrameLayout.LayoutParams(
-            closeButtonSize,
-            closeButtonSize,
-            Gravity.CENTER_VERTICAL | Gravity.END
+        LinearLayout.LayoutParams closeButtonParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            closeButtonSize
         );
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            closeButtonParams.setMarginEnd(closeButtonSpacing);
+            closeButtonParams.setMarginStart(closeButtonSpacing);
         } else {
-            closeButtonParams.rightMargin = closeButtonSpacing;
+            closeButtonParams.leftMargin = closeButtonSpacing;
         }
         mHeaderContainer.addView(mCloseButton, closeButtonParams);
 
@@ -234,25 +253,8 @@ class GuideMessageView extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        updateTitleInsets();
+        updateTextMaxWidths(widthMeasureSpec);
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
-        if (mHeaderContainer.getVisibility() != View.VISIBLE) {
-            return;
-        }
-
-        int targetHeaderWidth = Math.max(
-            mHeaderContainer.getMeasuredWidth(),
-            mContentTextView.getMeasuredWidth()
-        );
-        int targetHeaderHeight = mHeaderContainer.getMeasuredHeight();
-        updateTitleMaxWidth(targetHeaderWidth);
-        if (mHeaderContainer.getMeasuredWidth() != targetHeaderWidth) {
-            mHeaderContainer.measure(
-                MeasureSpec.makeMeasureSpec(targetHeaderWidth, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(targetHeaderHeight, MeasureSpec.EXACTLY)
-            );
-        }
     }
 
     @Override
@@ -289,29 +291,59 @@ class GuideMessageView extends FrameLayout {
         mHeaderContainer.setVisibility(
             hasTitle || mCloseButton.getVisibility() == View.VISIBLE ? View.VISIBLE : View.GONE
         );
-        updateTitleInsets();
+        updateCloseButtonSpacing();
         int contentTopPadding = mHeaderContainer.getVisibility() == View.VISIBLE
             ? titleBottomPadding
             : 0;
         mContentTextView.setPadding(0, contentTopPadding, 0, 0);
     }
 
-    private void updateTitleInsets() {
-        int titleInset = mCloseButton.getVisibility() == View.VISIBLE
-            ? closeButtonSize + closeButtonSpacing
+    private void updateCloseButtonSpacing() {
+        ViewGroup.LayoutParams params = mCloseButton.getLayoutParams();
+        if (!(params instanceof LinearLayout.LayoutParams)) {
+            return;
+        }
+
+        LinearLayout.LayoutParams closeButtonParams = (LinearLayout.LayoutParams) params;
+        int spacing = hasTitle && mCloseButton.getVisibility() == View.VISIBLE
+            ? closeButtonSpacing
             : 0;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            mTitleTextView.setPaddingRelative(titleInset, 0, titleInset, 0);
+            closeButtonParams.setMarginStart(spacing);
         } else {
-            mTitleTextView.setPadding(titleInset, 0, titleInset, 0);
+            closeButtonParams.leftMargin = spacing;
         }
+        mCloseButton.setLayoutParams(closeButtonParams);
     }
 
-    private void updateTitleMaxWidth(int headerWidth) {
-        int titleInset = mCloseButton.getVisibility() == View.VISIBLE
-            ? closeButtonSize + closeButtonSpacing
-            : 0;
-        mTitleTextView.setMaxWidth(Math.max(0, headerWidth - (titleInset * 2)));
+    private void updateTextMaxWidths(int widthMeasureSpec) {
+        int availableWidth = MeasureSpec.getSize(widthMeasureSpec)
+            - getPaddingLeft()
+            - getPaddingRight()
+            - mTextContainer.getPaddingLeft()
+            - mTextContainer.getPaddingRight();
+
+        if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED || availableWidth <= 0) {
+            mTitleTextView.setMaxWidth(Integer.MAX_VALUE);
+            mContentTextView.setMaxWidth(Integer.MAX_VALUE);
+            mCloseButton.setMaxWidth(closeButtonMaxWidth);
+            return;
+        }
+
+        mContentTextView.setMaxWidth(availableWidth);
+
+        int closeButtonWidth = 0;
+        if (mCloseButton.getVisibility() == View.VISIBLE) {
+            mCloseButton.setMaxWidth(Math.min(closeButtonMaxWidth, Math.max(closeButtonSize, availableWidth / 2)));
+            measureChild(
+                mCloseButton,
+                MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST),
+                MeasureSpec.makeMeasureSpec(closeButtonSize, MeasureSpec.EXACTLY)
+            );
+            closeButtonWidth = mCloseButton.getMeasuredWidth() + closeButtonSpacing;
+        }
+
+        mTitleTextView.setMaxWidth(Math.max(0, availableWidth - closeButtonWidth));
     }
 
     private void updateTextContainerPadding() {
