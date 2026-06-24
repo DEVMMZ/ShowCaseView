@@ -5,10 +5,9 @@ import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
@@ -25,6 +24,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.WindowInsets;
 import android.view.animation.AlphaAnimation;
 import android.widget.FrameLayout;
 
@@ -67,6 +67,9 @@ public class GuideView extends FrameLayout {
     private final View target;
     private RectF targetRect;
     private final Rect backgroundRect = new Rect();
+    private final Rect safeAreaRect = new Rect();
+    private final int[] guideLocation = new int[2];
+    private final int[] targetLocation = new int[2];
 
     private final float density;
     private float stopY;
@@ -81,7 +84,7 @@ public class GuideView extends FrameLayout {
     private float circleInnerIndicatorSizeFinal;
     private float lineIndicatorWidthSize;
     private int messageViewPadding;
-    private float marginGuide;
+    private float indicatorMargin;
     private float strokeCircleWidth;
     private float indicatorHeight;
 
@@ -98,6 +101,12 @@ public class GuideView extends FrameLayout {
     private int lineIndicatorColor = LINE_INDICATOR_COLOR;
     private int circleIndicatorColor = CIRCLE_INDICATOR_COLOR;
     private int circleInnerIndicatorColor = CIRCLE_INNER_INDICATOR_COLOR;
+    private final ViewTreeObserver.OnGlobalLayoutListener layoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+        @Override
+        public void onGlobalLayout() {
+            updateGuideLayout(false);
+        }
+    };
 
     private GuideView(Context context, View view) {
         super(context);
@@ -124,53 +133,6 @@ public class GuideView extends FrameLayout {
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
         );
-
-        ViewTreeObserver.OnGlobalLayoutListener layoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
-                    getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                } else {
-                    getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                }
-
-                if (target instanceof Targetable) {
-                    targetRect = ((Targetable) target).boundingRect();
-                } else {
-                    int[] locationTarget = new int[2];
-                    target.getLocationOnScreen(locationTarget);
-                    targetRect = new RectF(
-                        locationTarget[0],
-                        locationTarget[1],
-                        locationTarget[0] + target.getWidth(),
-                        locationTarget[1] + target.getHeight()
-                    );
-                    if (isLandscape()) {
-                        targetRect.offset(-getStatusBarHeight(), 0);
-                    }
-                }
-
-                backgroundRect.set(
-                    getPaddingLeft(),
-                    getPaddingTop(),
-                    getWidth() - getPaddingRight(),
-                    getHeight() - getPaddingBottom()
-                );
-                if (isLandscape()) {
-                    backgroundRect.offset(-getNavigationBarSize(), 0);
-                } else {
-                    backgroundRect.offset(0, -getNavigationBarSize());
-                }
-
-                isTop = !((targetRect.top + (indicatorHeight)) > getHeight() / 2f);
-                marginGuide = (int) (isTop ? marginGuide : -marginGuide);
-                setMessageLocation(resolveMessageViewLocation());
-                startYLineAndCircle = (isTop ? targetRect.bottom : targetRect.top) + marginGuide;
-                stopY = yMessageView + indicatorHeight + (isTop ? -marginGuide : marginGuide);
-                startAnimationSize();
-            }
-        };
-        getViewTreeObserver().addOnGlobalLayoutListener(layoutListener);
     }
 
     private void startAnimationSize() {
@@ -225,7 +187,7 @@ public class GuideView extends FrameLayout {
 
     private void init() {
         lineIndicatorWidthSize = LINE_INDICATOR_WIDTH_SIZE * density;
-        marginGuide = MARGIN_INDICATOR * density;
+        indicatorMargin = MARGIN_INDICATOR * density;
         indicatorHeight = INDICATOR_HEIGHT * density;
         messageViewPadding = (int) (MESSAGE_VIEW_PADDING * density);
         strokeCircleWidth = STROKE_CIRCLE_INDICATOR_SIZE * density;
@@ -233,27 +195,29 @@ public class GuideView extends FrameLayout {
         circleInnerIndicatorSizeFinal = circleIndicatorSizeFinal - density;
     }
 
-    public int getNavigationBarSize() {
-        Resources resources = getResources();
-        int id = resources.getIdentifier("navigation_bar_height_landscape", "dimen", "android");
-        if (id > 0) {
-            return resources.getDimensionPixelSize(id);
-        }
-        return 0;
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        getViewTreeObserver().addOnGlobalLayoutListener(layoutListener);
+        post(() -> updateGuideLayout(true));
     }
 
-    public int getStatusBarHeight() {
-        int result = 0;
-        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            result = getResources().getDimensionPixelSize(resourceId);
+    @Override
+    protected void onDetachedFromWindow() {
+        if (getViewTreeObserver().isAlive()) {
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
+                getViewTreeObserver().removeOnGlobalLayoutListener(layoutListener);
+            } else {
+                getViewTreeObserver().removeGlobalOnLayoutListener(layoutListener);
+            }
         }
-        return result;
+        super.onDetachedFromWindow();
     }
 
-    private boolean isLandscape() {
-        int display_mode = getResources().getConfiguration().orientation;
-        return display_mode != Configuration.ORIENTATION_PORTRAIT;
+    @Override
+    public WindowInsets onApplyWindowInsets(WindowInsets insets) {
+        updateGuideLayout(false);
+        return super.onApplyWindowInsets(insets);
     }
 
     @Override
@@ -315,7 +279,9 @@ public class GuideView extends FrameLayout {
             targetPaint.setAntiAlias(true);
 
             if (target instanceof Targetable) {
-                canvas.drawPath(((Targetable) target).guidePath(), targetPaint);
+                Path guidePath = new Path(((Targetable) target).guidePath());
+                guidePath.offset(-guideLocation[0], -guideLocation[1]);
+                canvas.drawPath(guidePath, targetPaint);
             } else {
                 canvas.drawRoundRect(
                     targetRect,
@@ -397,10 +363,9 @@ public class GuideView extends FrameLayout {
     }
 
     private boolean isViewContains(View view, float rx, float ry) {
-        int[] location = new int[2];
-        view.getLocationOnScreen(location);
-        int x = location[0];
-        int y = location[1];
+        RectF viewBounds = getViewBoundsOnGuide(view);
+        int x = (int) viewBounds.left;
+        int y = (int) viewBounds.top;
         int w = view.getWidth();
         int h = view.getHeight();
 
@@ -414,43 +379,45 @@ public class GuideView extends FrameLayout {
     }
 
     public void updateGuideViewLocation() {
-        requestLayout();
+        updateGuideLayout(false);
     }
 
     private Point resolveMessageViewLocation() {
-
         int xMessageView;
         if (mGravity == Gravity.center) {
-            xMessageView = (int) (targetRect.left - mMessageView.getWidth() / 2 + target.getWidth() / 2);
+            xMessageView = Math.round(targetRect.centerX() - (mMessageView.getWidth() / 2f));
         } else {
-            xMessageView = (int) (targetRect.right) - mMessageView.getWidth();
+            xMessageView = Math.round(targetRect.right) - mMessageView.getWidth();
         }
 
-        if (isLandscape() && (xMessageView + mMessageView.getWidth()) > backgroundRect.right) {
-            xMessageView -= getNavigationBarSize();
-        }
+        int minX = safeAreaRect.left;
+        int maxX = Math.max(minX, safeAreaRect.right - mMessageView.getWidth());
+        xMessageView = clamp(xMessageView, minX, maxX);
 
-        if (xMessageView + mMessageView.getWidth() > getWidth()) {
-            xMessageView = getWidth() - mMessageView.getWidth();
-        }
-        if (xMessageView < 0) {
-            xMessageView = 0;
-        }
+        int belowY = Math.round(targetRect.bottom + indicatorHeight);
+        int aboveY = Math.round(targetRect.top - mMessageView.getHeight() - indicatorHeight);
+        boolean canFitBelow = belowY + mMessageView.getHeight() <= safeAreaRect.bottom;
+        boolean canFitAbove = aboveY >= safeAreaRect.top;
+        float availableAbove = targetRect.top - safeAreaRect.top;
+        float availableBelow = safeAreaRect.bottom - targetRect.bottom;
 
-        //set message view bottom
-        if ((targetRect.top + (indicatorHeight)) > getHeight() / 2f) {
-            isTop = false;
-            yMessageView = (int) (targetRect.top - mMessageView.getHeight() - indicatorHeight);
-        }
-        //set message view top
-        else {
+        if (canFitBelow && (!canFitAbove || availableBelow >= availableAbove)) {
             isTop = true;
-            yMessageView = (int) (targetRect.top + target.getHeight() + indicatorHeight);
+            yMessageView = belowY;
+        } else if (canFitAbove) {
+            isTop = false;
+            yMessageView = aboveY;
+        } else if (availableBelow >= availableAbove) {
+            isTop = true;
+            yMessageView = safeAreaRect.bottom - mMessageView.getHeight();
+        } else {
+            isTop = false;
+            yMessageView = safeAreaRect.top;
         }
 
-        if (yMessageView < 0) {
-            yMessageView = 0;
-        }
+        int minY = safeAreaRect.top;
+        int maxY = Math.max(minY, safeAreaRect.bottom - mMessageView.getHeight());
+        yMessageView = clamp(yMessageView, minY, maxY);
 
         return new Point(xMessageView, yMessageView);
     }
@@ -468,6 +435,98 @@ public class GuideView extends FrameLayout {
         startAnimation.setFillAfter(true);
         this.startAnimation(startAnimation);
         mIsShowing = true;
+    }
+
+    private void updateGuideLayout(boolean forceStartAnimation) {
+        if (target == null || getWidth() == 0 || getHeight() == 0 || target.getWidth() == 0 || target.getHeight() == 0) {
+            return;
+        }
+
+        targetRect = getViewBoundsOnGuide(target);
+        backgroundRect.set(0, 0, getWidth(), getHeight());
+        safeAreaRect.set(backgroundRect);
+        applyWindowInsetsToSafeArea(safeAreaRect);
+
+        Point messageLocation = resolveMessageViewLocation();
+        float signedIndicatorMargin = isTop ? indicatorMargin : -indicatorMargin;
+        setMessageLocation(messageLocation);
+        startYLineAndCircle = (isTop ? targetRect.bottom : targetRect.top) + signedIndicatorMargin;
+        stopY = yMessageView + indicatorHeight + (isTop ? -signedIndicatorMargin : signedIndicatorMargin);
+
+        if (forceStartAnimation) {
+            isPerformedAnimationSize = false;
+        }
+
+        if (!isPerformedAnimationSize) {
+            startAnimationSize();
+        } else {
+            circleIndicatorSize = circleIndicatorSizeFinal;
+            circleInnerIndicatorSize = circleInnerIndicatorSizeFinal;
+            invalidate();
+        }
+    }
+
+    private RectF getViewBoundsOnGuide(View view) {
+        getLocationOnScreen(guideLocation);
+        if (view instanceof Targetable) {
+            RectF bounds = new RectF(((Targetable) view).boundingRect());
+            bounds.offset(-guideLocation[0], -guideLocation[1]);
+            return bounds;
+        }
+
+        view.getLocationOnScreen(targetLocation);
+        return new RectF(
+            targetLocation[0] - guideLocation[0],
+            targetLocation[1] - guideLocation[1],
+            targetLocation[0] - guideLocation[0] + view.getWidth(),
+            targetLocation[1] - guideLocation[1] + view.getHeight()
+        );
+    }
+
+    private void applyWindowInsetsToSafeArea(Rect bounds) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return;
+        }
+
+        WindowInsets rootInsets = getRootWindowInsets();
+        if (rootInsets == null) {
+            return;
+        }
+
+        int insetLeft;
+        int insetTop;
+        int insetRight;
+        int insetBottom;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Insets insetsIgnoringVisibility = rootInsets.getInsetsIgnoringVisibility(
+                WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout()
+            );
+            insetLeft = insetsIgnoringVisibility.left;
+            insetTop = insetsIgnoringVisibility.top;
+            insetRight = insetsIgnoringVisibility.right;
+            insetBottom = insetsIgnoringVisibility.bottom;
+        } else {
+            insetLeft = rootInsets.getSystemWindowInsetLeft();
+            insetTop = rootInsets.getSystemWindowInsetTop();
+            insetRight = rootInsets.getSystemWindowInsetRight();
+            insetBottom = rootInsets.getSystemWindowInsetBottom();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && rootInsets.getDisplayCutout() != null) {
+                insetLeft = Math.max(insetLeft, rootInsets.getDisplayCutout().getSafeInsetLeft());
+                insetTop = Math.max(insetTop, rootInsets.getDisplayCutout().getSafeInsetTop());
+                insetRight = Math.max(insetRight, rootInsets.getDisplayCutout().getSafeInsetRight());
+                insetBottom = Math.max(insetBottom, rootInsets.getDisplayCutout().getSafeInsetBottom());
+            }
+        }
+
+        bounds.left += insetLeft;
+        bounds.top += insetTop;
+        bounds.right -= insetRight;
+        bounds.bottom -= insetBottom;
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(value, max));
     }
 
     public void setTitle(String str) {
