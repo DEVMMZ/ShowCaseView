@@ -6,6 +6,7 @@ import android.graphics.Typeface;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -55,10 +56,8 @@ public class MainActivity extends AppCompatActivity {
                 .setDismissType(DismissType.anywhere)
                 .setPointerType(PointerType.circle)
                 .setShowSkipButton(true)
-                .setSkipButtonText("Skip")
-                .setSkipButtonTextColor(Color.BLACK)
                 .setSkipButtonBackgroundDrawable(
-                        getResources().getDrawable(android.R.drawable.ic_menu_close_clear_cancel)
+                        ContextCompat.getDrawable(this, android.R.drawable.ic_menu_close_clear_cancel)
                 )
                 .setTargetView(guideSequence.get(0))
                 .setSkipListener(view -> {
