@@ -43,7 +43,7 @@ public class GuideView extends FrameLayout {
 
     private static final int INDICATOR_HEIGHT = 40;
     private static final int MESSAGE_VIEW_PADDING = 5;
-    private static final int SIZE_ANIMATION_DURATION = 700;
+    private static final int SIZE_ANIMATION_DURATION = 400;
     private static final int APPEARING_ANIMATION_DURATION = 400;
     private static final int CIRCLE_INDICATOR_SIZE = 6;
     private static final int LINE_INDICATOR_WIDTH_SIZE = 3;
@@ -89,6 +89,9 @@ public class GuideView extends FrameLayout {
     private float indicatorHeight;
 
     private boolean isPerformedAnimationSize = false;
+    private boolean isAnimationRunning = false;
+    private ValueAnimator linePositionAnimator;
+    private ValueAnimator circleSizeAnimator;
 
     private GuideListener mGuideListener;
     private SkipListener mSkipListener;
@@ -118,29 +121,30 @@ public class GuideView extends FrameLayout {
 
         mMessageView = new GuideMessageView(getContext());
         mMessageView.setPadding(
-            messageViewPadding,
-            messageViewPadding,
-            messageViewPadding,
-            messageViewPadding
+                messageViewPadding,
+                messageViewPadding,
+                messageViewPadding,
+                messageViewPadding
         );
         mMessageView.setColor(Color.WHITE);
         mMessageView.setOnSkipClickListener(skipView -> skip());
 
         addView(
-            mMessageView,
-            new LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
+                mMessageView,
+                new LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
         );
     }
 
     private void startAnimationSize() {
-        if (!isPerformedAnimationSize) {
-            final ValueAnimator circleSizeAnimator = ValueAnimator.ofFloat(
-                0f,
-                circleIndicatorSizeFinal
-            );
+        if (!isPerformedAnimationSize && !isAnimationRunning) {
+            isAnimationRunning = true;
+            circleIndicatorSize = 0f;
+            circleInnerIndicatorSize = 0f;
+
+            circleSizeAnimator = ValueAnimator.ofFloat(0f, circleIndicatorSizeFinal);
             circleSizeAnimator.addUpdateListener(valueAnimator -> {
                 circleIndicatorSize = (float) circleSizeAnimator.getAnimatedValue();
                 float animatedFraction = circleSizeAnimator.getAnimatedFraction();
@@ -148,17 +152,13 @@ public class GuideView extends FrameLayout {
                 postInvalidate();
             });
 
-            final ValueAnimator linePositionAnimator = ValueAnimator.ofFloat(
-                stopY,
-                startYLineAndCircle
-            );
+            linePositionAnimator = ValueAnimator.ofFloat(stopY, startYLineAndCircle);
             linePositionAnimator.addUpdateListener(valueAnimator -> {
                 startYLineAndCircle = (float) linePositionAnimator.getAnimatedValue();
                 postInvalidate();
             });
 
             linePositionAnimator.setDuration(SIZE_ANIMATION_DURATION);
-            linePositionAnimator.start();
             linePositionAnimator.addListener(new Animator.AnimatorListener() {
                 @Override
                 public void onAnimationStart(Animator animator) {
@@ -167,14 +167,16 @@ public class GuideView extends FrameLayout {
 
                 @Override
                 public void onAnimationEnd(Animator animator) {
+                    if (!isAnimationRunning) {
+                        return;
+                    }
                     circleSizeAnimator.setDuration(SIZE_ANIMATION_DURATION);
                     circleSizeAnimator.start();
-                    isPerformedAnimationSize = true;
                 }
 
                 @Override
                 public void onAnimationCancel(Animator animator) {
-
+                    isAnimationRunning = false;
                 }
 
                 @Override
@@ -182,7 +184,44 @@ public class GuideView extends FrameLayout {
 
                 }
             });
+
+            circleSizeAnimator.addListener(new Animator.AnimatorListener() {
+                @Override
+                public void onAnimationStart(Animator animator) {
+
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animator) {
+                    isPerformedAnimationSize = true;
+                    isAnimationRunning = false;
+                }
+
+                @Override
+                public void onAnimationCancel(Animator animator) {
+                    isAnimationRunning = false;
+                }
+
+                @Override
+                public void onAnimationRepeat(Animator animator) {
+
+                }
+            });
+
+            linePositionAnimator.start();
         }
+    }
+
+    private void cancelAnimationSize() {
+        if (linePositionAnimator != null) {
+            linePositionAnimator.cancel();
+            linePositionAnimator = null;
+        }
+        if (circleSizeAnimator != null) {
+            circleSizeAnimator.cancel();
+            circleSizeAnimator = null;
+        }
+        isAnimationRunning = false;
     }
 
     private void init() {
@@ -204,6 +243,7 @@ public class GuideView extends FrameLayout {
 
     @Override
     protected void onDetachedFromWindow() {
+        cancelAnimationSize();
         if (getViewTreeObserver().isAlive()) {
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
                 getViewTreeObserver().removeOnGlobalLayoutListener(layoutListener);
@@ -252,10 +292,10 @@ public class GuideView extends FrameLayout {
                     canvas.drawLine(x, startYLineAndCircle, x, stopY, paintLine);
                     canvas.drawCircle(x, startYLineAndCircle, circleIndicatorSize, paintCircle);
                     canvas.drawCircle(
-                        x,
-                        startYLineAndCircle,
-                        circleInnerIndicatorSize,
-                        paintCircleInner
+                            x,
+                            startYLineAndCircle,
+                            circleInnerIndicatorSize,
+                            paintCircleInner
                     );
                     break;
                 case arrow:
@@ -284,10 +324,10 @@ public class GuideView extends FrameLayout {
                 canvas.drawPath(guidePath, targetPaint);
             } else {
                 canvas.drawRoundRect(
-                    targetRect,
-                    RADIUS_SIZE_TARGET_RECT,
-                    RADIUS_SIZE_TARGET_RECT,
-                    targetPaint
+                        targetRect,
+                        RADIUS_SIZE_TARGET_RECT,
+                        RADIUS_SIZE_TARGET_RECT,
+                        targetPaint
                 );
             }
         }
@@ -306,6 +346,7 @@ public class GuideView extends FrameLayout {
     }
 
     private void dismiss(boolean skipped) {
+        cancelAnimationSize();
         ((ViewGroup) ((Activity) getContext()).getWindow().getDecorView()).removeView(this);
         mIsShowing = false;
         if (mGuideListener != null) {
@@ -424,8 +465,8 @@ public class GuideView extends FrameLayout {
 
     public void show() {
         this.setLayoutParams(new ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
         ));
         this.setClickable(false);
         mMessageView.setSkipButtonVisible(showSkipButton);
@@ -454,6 +495,7 @@ public class GuideView extends FrameLayout {
         stopY = yMessageView + indicatorHeight + (isTop ? -signedIndicatorMargin : signedIndicatorMargin);
 
         if (forceStartAnimation) {
+            cancelAnimationSize();
             isPerformedAnimationSize = false;
         }
 
@@ -476,10 +518,10 @@ public class GuideView extends FrameLayout {
 
         view.getLocationOnScreen(targetLocation);
         return new RectF(
-            targetLocation[0] - guideLocation[0],
-            targetLocation[1] - guideLocation[1],
-            targetLocation[0] - guideLocation[0] + view.getWidth(),
-            targetLocation[1] - guideLocation[1] + view.getHeight()
+                targetLocation[0] - guideLocation[0],
+                targetLocation[1] - guideLocation[1],
+                targetLocation[0] - guideLocation[0] + view.getWidth(),
+                targetLocation[1] - guideLocation[1] + view.getHeight()
         );
     }
 
@@ -500,7 +542,7 @@ public class GuideView extends FrameLayout {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Insets insetsIgnoringVisibility = rootInsets.getInsetsIgnoringVisibility(
-                WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout()
+                    WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout()
             );
             insetLeft = insetsIgnoringVisibility.left;
             insetTop = insetsIgnoringVisibility.top;

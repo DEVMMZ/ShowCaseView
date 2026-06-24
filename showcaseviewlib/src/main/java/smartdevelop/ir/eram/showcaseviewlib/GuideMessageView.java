@@ -32,13 +32,14 @@ class GuideMessageView extends FrameLayout {
     private static final int DEFAULT_CONTENT_TEXT_SIZE = 14;
     private static final int CLOSE_BUTTON_SIZE = 40;
     private static final int CLOSE_BUTTON_TEXT_SIZE = 18;
-    private static final int CLOSE_BUTTON_MARGIN = 8;
+    private static final int CLOSE_BUTTON_SPACING = 8;
     private static final int CLOSE_BUTTON_ICON_COLOR = 0x99000000;
     private static final int CLOSE_BUTTON_PRESSED_COLOR = 0x14000000;
 
     private final Paint mPaint;
     private final RectF mRect;
     private final LinearLayout mTextContainer;
+    private final LinearLayout mHeaderContainer;
     private final TextView mTitleTextView;
     private final TextView mContentTextView;
     private final TextView mCloseButton;
@@ -48,7 +49,7 @@ class GuideMessageView extends FrameLayout {
     private final int contentPadding;
     private final int titleBottomPadding;
     private final int closeButtonSize;
-    private final int closeButtonMargin;
+    private final int closeButtonSpacing;
     private boolean hasTitle = true;
 
     GuideMessageView(Context context) {
@@ -58,7 +59,7 @@ class GuideMessageView extends FrameLayout {
         contentPadding = (int) (PADDING_SIZE * density);
         titleBottomPadding = (int) (BOTTOM_PADDING_SIZE * density);
         closeButtonSize = (int) (CLOSE_BUTTON_SIZE * density);
-        closeButtonMargin = (int) (CLOSE_BUTTON_MARGIN * density);
+        closeButtonSpacing = (int) (CLOSE_BUTTON_SPACING * density);
 
         setWillNotDraw(false);
 
@@ -69,7 +70,7 @@ class GuideMessageView extends FrameLayout {
         mTextContainer = new LinearLayout(context);
         mTextContainer.setOrientation(LinearLayout.VERTICAL);
         mTextContainer.setGravity(Gravity.CENTER);
-        updateTextContainerPadding(false);
+        updateTextContainerPadding();
         addView(
             mTextContainer,
             new LayoutParams(
@@ -78,36 +79,24 @@ class GuideMessageView extends FrameLayout {
             )
         );
 
-        mTitleTextView = new TextView(context);
-        mTitleTextView.setPadding(
-            contentPadding,
-            contentPadding,
-            contentPadding,
-            titleBottomPadding
-        );
-        mTitleTextView.setGravity(Gravity.CENTER);
-        mTitleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, DEFAULT_TITLE_TEXT_SIZE);
-        mTitleTextView.setTextColor(Color.BLACK);
+        mHeaderContainer = new LinearLayout(context);
+        mHeaderContainer.setOrientation(LinearLayout.HORIZONTAL);
+        mHeaderContainer.setGravity(Gravity.CENTER_VERTICAL);
         mTextContainer.addView(
-            mTitleTextView,
+            mHeaderContainer,
             new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
         );
 
-        mContentTextView = new TextView(context);
-        mContentTextView.setTextColor(Color.BLACK);
-        mContentTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, DEFAULT_CONTENT_TEXT_SIZE);
-        mContentTextView.setPadding(
-            contentPadding,
-            titleBottomPadding,
-            contentPadding,
-            contentPadding
-        );
-        mContentTextView.setGravity(Gravity.CENTER);
-        mTextContainer.addView(
-            mContentTextView,
+        mTitleTextView = new TextView(context);
+        mTitleTextView.setPadding(0, 0, 0, 0);
+        mTitleTextView.setGravity(Gravity.CENTER);
+        mTitleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, DEFAULT_TITLE_TEXT_SIZE);
+        mTitleTextView.setTextColor(Color.BLACK);
+        mHeaderContainer.addView(
+            mTitleTextView,
             new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -124,30 +113,40 @@ class GuideMessageView extends FrameLayout {
         );
         mCloseButton.setBackgroundDrawable(createCloseButtonBackground());
         mCloseButton.setVisibility(View.GONE);
-        LayoutParams closeLayoutParams = new LayoutParams(closeButtonSize, closeButtonSize);
-        closeLayoutParams.gravity = Gravity.TOP | Gravity.END;
-        closeLayoutParams.setMargins(
-            closeButtonMargin,
-            closeButtonMargin,
-            closeButtonMargin,
-            closeButtonMargin
+        LinearLayout.LayoutParams closeButtonParams = new LinearLayout.LayoutParams(
+            closeButtonSize,
+            closeButtonSize
         );
-        addView(mCloseButton, closeLayoutParams);
+        closeButtonParams.setMargins(closeButtonSpacing, 0, 0, 0);
+        mHeaderContainer.addView(mCloseButton, closeButtonParams);
+
+        mContentTextView = new TextView(context);
+        mContentTextView.setTextColor(Color.BLACK);
+        mContentTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, DEFAULT_CONTENT_TEXT_SIZE);
+        mContentTextView.setPadding(0, titleBottomPadding, 0, 0);
+        mContentTextView.setGravity(Gravity.CENTER);
+        mTextContainer.addView(
+            mContentTextView,
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        );
+
+        updateHeaderVisibility();
     }
 
     public void setTitle(String title) {
         if (title == null) {
             if (hasTitle) {
-                mTextContainer.removeView(mTitleTextView);
                 hasTitle = false;
+                updateHeaderVisibility();
             }
             return;
         }
-        if (!hasTitle) {
-            mTextContainer.addView(mTitleTextView, 0);
-            hasTitle = true;
-        }
+        hasTitle = true;
         mTitleTextView.setText(title);
+        updateHeaderVisibility();
     }
 
     public void setContentText(String content) {
@@ -222,7 +221,7 @@ class GuideMessageView extends FrameLayout {
 
     public void setSkipButtonVisible(boolean visible) {
         mCloseButton.setVisibility(visible ? View.VISIBLE : View.GONE);
-        updateTextContainerPadding(visible);
+        updateHeaderVisibility();
     }
 
     public void setOnSkipClickListener(OnClickListener listener) {
@@ -258,25 +257,42 @@ class GuideMessageView extends FrameLayout {
         canvas.drawRoundRect(mRect, radiusSize, radiusSize, mPaint);
     }
 
-    private void updateTextContainerPadding(boolean hasCloseButton) {
-        int endPadding = contentPadding;
-        if (hasCloseButton) {
-            endPadding += closeButtonSize + (closeButtonMargin * 2);
-        }
-        int start = contentPadding;
-        int top = contentPadding;
-        int bottom = contentPadding;
+    private void updateHeaderVisibility() {
+        mTitleTextView.setVisibility(hasTitle ? View.VISIBLE : View.GONE);
+        mHeaderContainer.setVisibility(
+            hasTitle || mCloseButton.getVisibility() == View.VISIBLE ? View.VISIBLE : View.GONE
+        );
+        int contentTopPadding = mHeaderContainer.getVisibility() == View.VISIBLE
+            ? titleBottomPadding
+            : 0;
+        mContentTextView.setPadding(0, contentTopPadding, 0, 0);
+    }
+
+    private void updateTextContainerPadding() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            mTextContainer.setPaddingRelative(start, top, endPadding, bottom);
+            mTextContainer.setPaddingRelative(
+                contentPadding,
+                contentPadding,
+                contentPadding,
+                contentPadding
+            );
         } else {
-            mTextContainer.setPadding(start, top, endPadding, bottom);
+            mTextContainer.setPadding(
+                contentPadding,
+                contentPadding,
+                contentPadding,
+                contentPadding
+            );
         }
     }
 
     @SuppressWarnings("deprecation")
     private StateListDrawable createCloseButtonBackground() {
         StateListDrawable states = new StateListDrawable();
-        states.addState(new int[]{android.R.attr.state_pressed}, createCloseButtonCircle(CLOSE_BUTTON_PRESSED_COLOR));
+        states.addState(
+            new int[]{android.R.attr.state_pressed},
+            createCloseButtonCircle(CLOSE_BUTTON_PRESSED_COLOR)
+        );
         states.addState(new int[]{}, createCloseButtonCircle(Color.TRANSPARENT));
         return states;
     }
