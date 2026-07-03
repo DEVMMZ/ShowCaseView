@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showGuideAt(int index) {
         mGuideView = builder.setTargetView(guideSequence.get(index)).build();
-        mGuideView.show();
+        mGuideView.show(index == 0);
     }
 
 }

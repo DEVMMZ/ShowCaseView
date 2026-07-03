@@ -464,6 +464,10 @@ public class GuideView extends FrameLayout {
     }
 
     public void show() {
+        show(true);
+    }
+
+    public void show(boolean animate) {
         this.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -471,10 +475,12 @@ public class GuideView extends FrameLayout {
         this.setClickable(false);
         mMessageView.setSkipButtonVisible(showSkipButton);
         ((ViewGroup) ((Activity) getContext()).getWindow().getDecorView()).addView(this);
-        AlphaAnimation startAnimation = new AlphaAnimation(0.0f, 1.0f);
-        startAnimation.setDuration(APPEARING_ANIMATION_DURATION);
-        startAnimation.setFillAfter(true);
-        this.startAnimation(startAnimation);
+        if (animate) {
+            AlphaAnimation startAnimation = new AlphaAnimation(0.0f, 1.0f);
+            startAnimation.setDuration(APPEARING_ANIMATION_DURATION);
+            startAnimation.setFillAfter(true);
+            this.startAnimation(startAnimation);
+        }
         mIsShowing = true;
     }
 
