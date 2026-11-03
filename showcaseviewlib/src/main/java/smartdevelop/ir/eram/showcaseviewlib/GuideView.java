@@ -263,7 +263,8 @@ public class GuideView extends FrameLayout {
     @Override
     protected void onDraw(final Canvas canvas) {
         super.onDraw(canvas);
-        if (target != null) {
+        // targetRect stays null until the target has been laid out with a non-zero size
+        if (target != null && targetRect != null) {
 
             selfPaint.setColor(overlayColor);
             selfPaint.setStyle(Paint.Style.FILL);
@@ -381,7 +382,7 @@ public class GuideView extends FrameLayout {
                     break;
 
                 case targetView:
-                    if (targetRect.contains(x, y)) {
+                    if (targetRect != null && targetRect.contains(x, y)) {
                         target.performClick();
                         dismiss();
                     }
@@ -394,7 +395,8 @@ public class GuideView extends FrameLayout {
                     break;
 
                 case outsideTargetAndMessage:
-                    if (!(targetRect.contains(x, y) || isViewContains(mMessageView, x, y))) {
+                    boolean inTarget = targetRect != null && targetRect.contains(x, y);
+                    if (!(inTarget || isViewContains(mMessageView, x, y))) {
                         dismiss();
                     }
             }
